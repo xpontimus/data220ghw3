@@ -1,0 +1,124 @@
+---
+title: "Data220G HW3"
+output: html_notebook
+---
+
+```{r}
+library(xml2)
+library(httr)
+library(rvest)
+
+library(readxl)
+library(stringr)
+library(tidyverse)
+```
+
+```{r}
+hpi <- read_excel("data/hp1603.xlsx", "HPI")
+
+glimpse(hpi)
+```
+
+
+```{r}
+cols <- colnames(hpi)
+cols
+```
+
+
+```{r}
+cols[1] <- "quarter"
+cols
+```
+
+```{r}
+cols[is.na(cols)] <- "JUNK"
+cols 
+```
+
+```{r}
+cols <- tolower(cols) %>% str_replace_all("[[:punct:][:space:]]+", "_")
+cols
+```
+
+```{r}
+hpi %>% setNames(cols) -> hpi
+
+glimpse(hpi)
+```
+
+```{r}
+read_hpi <- function(hpi_file_name) {
+  
+  message(hpi_file_name)
+  
+  hpi <- read_excel(hpi_file_name, 2)  
+  
+  cols <- colnames(hpi)
+  
+  cols[1] <- "quarter"
+  cols[is.na(cols)] <- "JUNK"
+  
+  cols <- tolower(cols) %>% str_replace_all("[[:punct:][:space:]]+", "_")
+  
+  hpi %>% 
+    setNames(cols)
+
+}
+```
+
+```{r}
+read_hpi("hp1602.xlsx")
+```
+
+```{r}
+#read_hpi("hp1602.xlsx")
+```
+
+```{r}
+URL <- "https://www.dallasfed.org/institute/houseprice"
+
+pg <- read_html(URL)
+
+# html_nodes(pg, "a")
+
+# html_nodes(pg, "a") %>% 
+#   html_attr("href") %>% 
+#   grep("xlsx", ., value=TRUE) %>% 
+#   grep("hpta", ., invert=TRUE, value=TRUE)
+
+html_nodes(pg, "a") %>% 
+  html_attr("href") %>% 
+  grep("xlsx", ., value=TRUE) %>% 
+  grep("hp[[:digit:]]", ., value=TRUE) -> urls
+
+urls
+```
+
+```{r}
+# sprintf("%s/%s", URL, urls) 
+
+urls <- paste(URL, "/", urls, sep="")
+urls <- urls[-1]
+```
+
+```{r}
+ for (hpi_file in urls) {
+   download.file(hpi_file, basename(hpi_file), method = "wininet", mode = "wb")
+ }
+ sub("\\?.*$", "", urls)
+ str_replace(urls, "\\?.*$", "")
+
+```
+
+
+```{r}
+list.files(pattern=".*xlsx.*")
+
+list.files() %>% 
+  grep("xlsx", ., value=TRUE) %>% 
+  map(read_hpi) -> hpi_list
+```
+```{r}
+hpi_list
+```
